@@ -1,0 +1,86 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:itassets/pages/login_page.dart';
+import 'logout.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/jumlahpc.dart';
+
+class HomePage extends StatelessWidget {
+  List<JmlPcModel> jumlahPc = [];
+  HomePage({super.key});
+
+  Future getJumlahPc() async {
+    final url = Uri.parse("${dotenv.env['API']}/jumlahPc");
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('auth_token');
+
+    try {
+      var response = await http.get(url, headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      });
+      // debugPrint(response.body);
+      // if (response.statusCode == 200) {
+      List data = (json.decode(response.body) as Map<String, dynamic>)['data'];
+      // for (var element in data) {
+      //   jumlahPc.add(JmlPcModel.fromJson(element));
+      //   // }
+      print(data);
+      // }
+    } catch (e) {
+      Center(
+        child: Text("Error $e"),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          "IT Assets",
+          style: TextStyle(color: Colors.white),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.red[900],
+        actions: [
+          IconButton(
+            onPressed: () {
+              logout();
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()));
+            },
+            icon: const Icon(Icons.logout),
+            color: Colors.white,
+          ),
+        ],
+      ),
+      body: FutureBuilder(
+        future: getJumlahPc(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: Text("Loading ..."),
+            );
+          } else {
+            // if (jumlahPc.isEmpty) {
+            //   return const Center(
+            //     child: Text("Tidak ada data ..."),
+            //   );
+            // }
+            return ListView.builder(
+                itemCount: jumlahPc.length,
+                itemBuilder: (context, index) {
+                  return Column(
+                    children: [Text("Domain : ${jumlahPc[index].domain}")],
+                  );
+                });
+          }
+        },
+      ),
+    );
+  }
+}

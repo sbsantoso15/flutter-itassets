@@ -102,14 +102,20 @@ class _PcNonDomainState extends State<PcDomain> {
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Text('No data available');
           } else {
-            return DropdownSearch<CabangModel>(
-              mode: Mode.custom,
-              itemAsString: (CabangModel item) => item.namacab,
-              onChanged: (CabangModel? selectedItem) {
-                if (selectedItem != null) {
-                  print('Selected Item: ${selectedItem.namacab}');
-                }
-              },
+            return DropdownSearch<String>(
+              popupProps: PopupProps.menu(
+                showSelectedItems: true,
+                disabledItemFn: (String s) => s.startsWith('I'),
+              ),
+              items: ["Brazil", "Italia (Disabled)", "Tunisia", 'Canada'],
+              dropdownDecoratorProps: DropDownDecoratorProps(
+                dropdownSearchDecoration: InputDecoration(
+                  labelText: "Menu mode",
+                  hintText: "country in menu mode",
+                ),
+              ),
+              onChanged: print,
+              selectedItem: "Brazil",
             );
           }
         },

@@ -64,6 +64,7 @@ class _HomePageState extends State<HomePage> {
         Map<String, dynamic> data =
             (json.decode(response.body) as Map<String, dynamic>)["data"];
         jumlahPc.add(JmlPcModel.fromJson(data));
+        print(jumlahPc.length);
       }
     } catch (e) {
       Center(

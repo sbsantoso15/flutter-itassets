@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/retry.dart';
 import '../home_page.dart';
 import '../domain/pc_domain.dart';
 import '../logout.dart';
@@ -8,10 +9,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-// import 'package:dio/dio.dart';
 import 'package:dropdown_search/dropdown_search.dart';
-
-// import 'package:dropdown_search/dropdown_search.dart';
 
 class PcNonDomain extends StatefulWidget {
   const PcNonDomain({super.key});
@@ -58,7 +56,8 @@ class _PcNonDomainState extends State<PcNonDomain> {
 
   var url = Uri.parse("${dotenv.env['API']}/listCabang");
   List<CabangModel> listCabang = [];
-  Future getCabangtApi() async {
+
+  Future getData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('auth_token');
 
@@ -67,19 +66,41 @@ class _PcNonDomainState extends State<PcNonDomain> {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       });
+      //print(response.body);
       if (response.statusCode == 200) {
-        // Map<String, dynamic> data =
+        // List data =
         //     (json.decode(response.body) as Map<String, dynamic>)["data"];
-        var data = json.decode(response.body);
-        listCabang.add(CabangModel.fromJson(data));
-        debugPrint(data['namacab']);
+        // // listCabang.add(CabangModel.fromJson(data.first));
+        listCabang = ((json.decode(response.body)
+                as Map<String, dynamic>)["data"] as List)
+            .map((data) => CabangModel.fromJson(data))
+            .toList();
       }
+      //print(listCabang);
     } catch (e) {
-      Center(
-        child: Text("Error $e"),
+      return Center(
+        child: Text("Error: $e"),
       );
     }
+    // try {
+    //   var response = await http.get(url, headers: {
+    //     'Authorization': 'Bearer $token',
+    //     'Content-Type': 'application/json',
+    //   });
+    //   // if (response.statusCode == 200) {
+    //   Map<String, dynamic> data =
+    //       (json.decode(response.body) as Map<String, dynamic>)["data"];
+    //   listCabang.add(CabangModel.fromJson(data));
+    //   print(response.body);
+    //   // }
+    // } catch (e) {
+    //   Center(
+    //     child: Text("Error $e"),
+    //   );
+    // }
   }
+
+  CabangModel? selectedCabang;
 
   @override
   Widget build(BuildContext context) {
@@ -97,25 +118,36 @@ class _PcNonDomainState extends State<PcNonDomain> {
         body: Padding(
           padding: const EdgeInsets.all(15),
           child: FutureBuilder(
-            future: getCabangtApi(),
+            future: getData(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
                   child: Text("Loading ..."),
                 );
               }
-              return const Center(child: Text('data'));
-              // return DropdownSearch<CabangModel>(
-              //   key: dropDownKey,
-              //   items: listCabang.first,
-              //   itemAsString: (item) => item.namacab,
-              //   decoratorProps: const DropDownDecoratorProps(
-              //     decoration: InputDecoration(
-              //       labelText: 'Cabang:',
-              //       border: OutlineInputBorder(),
-              //     ),
-              //   ),
-              // );
+              // return const Center(child: Text('data'));
+              return DropdownSearch<CabangModel>(
+                items: listCabang,
+                onChanged: (CabangModel? selectedBranch) {
+                  setState(() {
+                    selectedCabang = selectedBranch;
+                    if (selectedBranch != null) {
+                      print("Selected branch name: ${selectedBranch.kodecab}");
+                      print("Selected branch id: ${selectedBranch.namacab}");
+                    }
+                  });
+                },
+                itemAsString: (CabangModel branch) => branch.namacab,
+                popupProps: const PopupProps.menu(
+                  //fit: FlexFit.loose,
+                  constraints: BoxConstraints(),
+                  showSearchBox: true,
+                ),
+                dropdownButtonProps: const DropdownButtonProps(
+                  icon: Icon(Icons.arrow_drop_down),
+                ),
+                selectedItem: selectedCabang, // Display the selected branch
+              );
             },
           ),
           // child: DropdownSearch<String> (
@@ -141,26 +173,6 @@ class _PcNonDomainState extends State<PcNonDomain> {
   }
 
   final dropDownKey = GlobalKey<DropdownSearchState>();
-  Center body() {
-    return Center(
-      child: DropdownSearch<String>(
-        key: dropDownKey,
-        selectedItem: "Menu",
-        items: (filter, infiniteScrollProps) =>
-            ["Menu", "Dialog", "Modal", "BottomSheet"],
-        decoratorProps: const DropDownDecoratorProps(
-          decoration: InputDecoration(
-            labelText: 'Examples for: ',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        popupProps: const PopupProps.menu(
-          fit: FlexFit.loose,
-          constraints: BoxConstraints(),
-        ),
-      ),
-    );
-  }
 
   BottomNavigationBar bottomNavigator() {
     return BottomNavigationBar(
